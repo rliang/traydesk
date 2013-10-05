@@ -1,0 +1,73 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+# vim: set ts=4 sw=4 et:
+
+# Copyright (C) 2013 Ricardo Liang <ricardoliang@gmail.com>
+
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+import gtk
+
+
+class Traydesk:
+
+    def __init__(self):
+        self.icons = []
+        self.root = gtk.gdk.get_default_root_window()
+        self.root.set_events(gtk.gdk.PROPERTY_CHANGE_MASK)
+        self.root.add_filter(self._event_filter)
+        self._make_icons()
+
+    def _get_windows(self):
+        prop, frmt, data = self.root.property_get('_NET_CLIENT_LIST')
+        return [gtk.gdk.window_foreign_new(i) for i in data]
+
+    def _get_current_desktop(self):
+        prop, frmt, data = self.root.property_get('_NET_CURRENT_DESKTOP')
+        return data[0]
+
+    def _get_desktop(self, window):
+        prop, frmt, data = window.property_get('_NET_WM_DESKTOP')
+        return data[0]
+
+    def _get_icon(self, window):
+        prop, frmt, data = window.property_get('WM_CLASS')
+        return data.split('\0')[1].lower()
+
+    def _filter_windows(self, windows):
+        current_desktop = self._get_current_desktop()
+        return [w for w in windows
+                if self._get_desktop(w) is not current_desktop
+                and self._get_desktop(w) is not -1]
+
+    def _make_icons(self):
+        for c in self.icons:
+            c.set_visible(False)
+        self.icons = [gtk.status_icon_new_from_icon_name(self._get_icon(i))
+                for i in self._filter_windows(self._get_windows())]
+
+    def _event_filter(self, event, user_data=None):
+        self._make_icons()
+        return gtk.gdk.FILTER_CONTINUE
+
+
+if __name__ == "__main__":
+    Traydesk()
+    gtk.main()
+
