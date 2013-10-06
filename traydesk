@@ -48,7 +48,8 @@ class Traydesk:
 
     def _get_icon(self, window):
         prop, frmt, data = window.property_get('WM_CLASS')
-        return data.split('\0')[1].lower()
+        name = data.split('\0')[1].lower()
+        return gtk.status_icon_new_from_icon_name(name)
 
     def _filter_windows(self, windows):
         current_desktop = self._get_current_desktop()
@@ -59,8 +60,8 @@ class Traydesk:
     def _make_icons(self):
         for c in self.icons:
             c.set_visible(False)
-        self.icons = [gtk.status_icon_new_from_icon_name(self._get_icon(i))
-                for i in self._filter_windows(self._get_windows())]
+        self.icons = [self._get_icon(i)
+                      for i in self._filter_windows(self._get_windows())]
 
     def _event_filter(self, event, user_data=None):
         self._make_icons()
